@@ -6,6 +6,7 @@ import * as Helper from './Helper';
 import * as WebApiHelper from './WebApiHelper';
 import * as WebServiceHelper from './WebServiceHelper';
 import { ILookupModalProps, LookupModal } from './LookupModal';
+import { buttonStyles } from './style/Search-styles';
 
 export interface ISearchButtonProps {
   onClick(event: any): void;
@@ -15,6 +16,7 @@ export interface ISearchButtonProps {
   companyId: string;
   context: ComponentFramework.Context<IInputs>;
   isModalOpen: boolean;
+   
   selection?: IListItem;
 }
 
@@ -26,22 +28,17 @@ export interface ISearchButtonState {
   isModalOpen: boolean;
   selection?: IListItem;
   isValid?: boolean;
+  errorMessage?:string;
 }
 
 export class SearchButton extends React.Component<ISearchButtonProps, ISearchButtonState, ILookupModalProps>{
   private _userInfo: WebApiHelper.IUserInfo;
+  private _ceoUsersResult:any;
   private _seasResult: any;
   private _sebsResult: any;
   private _allItems: IListItem[] = [];
   private _columns = [
-    {
-      key: "column0",
-      name: "Index",
-      fieldName: "index",
-      minWidth: 10,
-      maxWidth: 10,
-      isResizable: true
-    },
+   
     {
       key: "column1",
       name: "Full Name",
@@ -81,6 +78,14 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       minWidth: 150,
       maxWidth: 250,
       isResizable: true
+    },
+    {
+      key: "column6",
+      name: "Index",
+      fieldName: "index",
+      minWidth: 10,
+      maxWidth: 10,
+      isResizable: false
     }
   ];
 
@@ -93,8 +98,9 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       context: this.props.context,
       isModalOpen: false,
       selection: this.props.selection,
-      disabled: this.props.disabled ? this.props.disabled : true, // TODO: Setup disabled true by default
-      isValid: true
+      disabled: this.props.disabled ? this.props.disabled : true, 
+      isValid: true,
+      errorMessage:"" 
     }
     this.onClick = this.onClick.bind(this);
   }
@@ -103,23 +109,29 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
     if (this.props.companyId !== prevProps.companyId) {
       this.setState({
         companyId: this.props.companyId,
-        disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0)
+        disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0),
+        isValid:true,
+        errorMessage:""
       });
     }
+  
 
     if (this.props.userId !== prevProps.userId) {
       this.setState({
         userId: this.props.userId,
-        disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0)
+        disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0),
+        isValid:true,
+        errorMessage:""
       });
     }
   }
   private hideModal(e: any) {
+  
     this.setState({ isModalOpen: !this.state.isModalOpen });
   }
 
   async onClick(event: any) {
- 
+
     if (Helper.isEmptyString(this.props.companyId) || Helper.isEmptyString(this.props.userId)) {
       Helper.showError(`Please enter valid CEO User ID or CEO Company ID.`);
       return;
@@ -143,40 +155,43 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       }
 
       // Process CEO User Result 
-      if (ceoUserResult.entities.length > 1) {
+      if (ceoUserResult.length > 1) {
+       this._ceoUsersResult = ceoUserResult;
         //Show pop up
         this._allItems = [];
 
-        for (let i = 0; i < ceoUserResult.entities.length; i++) {
+        for (let i = 0; i < ceoUserResult.length; i++) {
           let item = {
             index: i,
-            fullName: ceoUserResult.entities[i].wfsv_contactid.fullname ,
-            email:ceoUserResult.entities[i].wfsv_contactid.emailaddress1,
-            phone:ceoUserResult.entities[i].wfsv_contactid.mobilephone,
-            companyName: ceoUserResult.entities[i].wfsv_ceocompanyid.wfsv_ceocompanyname,
-            wcisId: ceoUserResult.entities[i].wfsv_ceocompanyid.wfsv_wcisclientid
+            fullName: ceoUserResult[i].wfsv_contactid.fullname ,
+            email:ceoUserResult[i].wfsv_contactid.emailaddress1,
+            phone:ceoUserResult[i].wfsv_contactid.mobilephone,
+            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name, //CEO Company name or Company name?
+            wcisId: ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid
           };
           console.log("ITEMS: "+ JSON.stringify(item) );
           this._allItems.push(item);
         }
-        this.setState({ isModalOpen: true }); // Open modal
-
-        if (this.props.selection !== null || this.props.selection !== undefined){
-          Helper.logInformation("Selected item from popup: " + JSON.stringify(this.props.selection));  
       
-          // Process single record
-         Helper.logInformation("Display result for pop up selected record: ");
-         const ceoSearchResult = WebApiHelper.generateOutput(ceoUserResult[this.props.selection?.index]);
+        this.setState({ isModalOpen: true }); // Open modal 
+       console.log("Display result for pop up selected record: " +  this.props.selection);
+          /*
+        const ceoSearchResult = WebApiHelper.generateOutput(this._ceoUsersResult[this.props.selection?.index]);
          if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
            const output: IOutputs = {
              ceoSearch: ceoSearchResult
            };
            this.props.onClick(output);
-         }
-        }
+         }*/
+        
       }
-      else if (ceoUserResult.entities.length < 1) {
-        // Webservice lookup 
+      else if (ceoUserResult.length < 1) {
+        this.setState({
+          isValid: false,
+          errorMessage:"Invalid CEO User ID or CEO Company ID."
+        });
+        // Webservice lookup - TODO
+        /*
         this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
         this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
         if (Helper.isNullObject(this._seasResult) || Helper.isNullObject(this._sebsResult)) {
@@ -187,12 +202,12 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
           return;
         }
         Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
-
+        */
       }
       else {
         // Process single record
         Helper.logInformation("Display result for 1 record: ");
-        const ceoSearchResult = WebApiHelper.generateOutput(ceoUserResult.entities[0]);
+        const ceoSearchResult = WebApiHelper.generateOutput(ceoUserResult[0]);
         if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
           const output: IOutputs = {
             ceoSearch: ceoSearchResult
@@ -207,25 +222,23 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   }
 
   onSelected(event: any) {
+    
   }
 
   render() {
     const { disabled } = this.state;
-
+ 
     return (
       <React.Fragment>
-        <PrimaryButton text="Search" onClick={this.onClick} disabled={disabled} />
-        {this.state.isValid ? null : <Helper.ErrorMessage message="test" />}
+        <PrimaryButton text="Search" onClick={this.onClick} disabled={disabled}  styles={buttonStyles} />
+        {this.state.isValid ? null : <Helper.ErrorMessage message={this.state.errorMessage}  />}
         <LookupModal
           records={this._allItems}
           columns={this._columns}
           onSelected={this.onSelected.bind(this)}
           isModalOpen={this.state.isModalOpen}
           hideModal={this.hideModal.bind(this)}
-          isDisabled={this.props.disabled}
         />
       </React.Fragment>);
   }
 }
-
-//{this.state.isValid ? null : <Helper.ErrorMessage message="test" />}
