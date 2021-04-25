@@ -15,13 +15,21 @@ interface whoAmIRequest {
 };
 
 export async function retrieveCeoUser(userId: string, companyId: string, context: any) {
-    //workind for mcs-collab and wf
-    const filter=`?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname,mobilephone,emailaddress1)`;
+    const filter=`?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`;
     const result = await context.webAPI.retrieveMultipleRecords(CEOUSERID_ENTITY, filter);
-    console.log("Result Count: " + result.entities.length);
+    let ceoUserResult = [] ;
+    if(result.entities.length>0)
+    {
+        for(let i=0;i<result.entities.length;i++)
+        {
+            if(!Helper.isNullObject(result.entities[i].wfsv_ceocompanyid))
+            {
+                ceoUserResult.push(result.entities[i]);
+            }
+        }
+    }
 
-    return result;
-    //${url}/wfsv_ceousers?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname)
+    return ceoUserResult;
 }
 
 export function createContact(contactData: any, context: any) {
@@ -78,7 +86,24 @@ export async function getUserInfo(context: any) {
 
 export function generateOutput(result:any)
 {
-    console.log("Insidete generateOutput");
+    console.log("Insidete generateOutput: " + JSON.stringify(result));
+    if(Helper.isNullObject(result) ||
+    Helper.isNullObject(result.wfsv_ceocompanyid))
+    {
+        Helper.showError("Invalid result or CEO company details");
+        return "";
+    }
+    if( Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid))
+    {
+        Helper.showError("Invalid result or company details");
+        return "";
+    }
+    if( Helper.isNullObject(result.wfsv_contactid))
+    {
+        Helper.showError("Invalid contact details");
+        return "";
+    }
+
   if (!Helper.isNullObject(result) &&
   !Helper.isNullObject(result.wfsv_ceocompanyid) &&
   !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_ceocompanyname) &&
@@ -86,9 +111,8 @@ export function generateOutput(result:any)
   !Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid) &&
   !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.name) &&
   !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.accountid) &&
-  !Helper.isNullObject(result.wfsv_contactid) &&
-  !Helper.isEmptyString(result.wfsv_contactid.contactid) &&
-  !Helper.isEmptyString(result.wfsv_contactid.fullname)) {
+  !Helper.isNullObject(result.wfsv_contactid) )
+  {
 
     const output = JSON.stringify({
     CEOCompanyID: result.wfsv_ceocompanyid.wfsv_ceocompanyname,
