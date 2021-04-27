@@ -15,7 +15,13 @@ interface whoAmIRequest {
 };
 
 export async function retrieveCeoUser(userId: string, companyId: string, context: any) {
-    const filter=`?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`;
+   
+   // USE FOR MCS-COLLAB
+    const filter = `?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`;
+  
+  //USE FOR WF
+  //const filter = `?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_company($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`; 
+
     const result = await context.webAPI.retrieveMultipleRecords(CEOUSERID_ENTITY, filter);
     let ceoUserResult = [] ;
     if(result.entities.length>0)
