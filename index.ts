@@ -2,18 +2,17 @@ import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import ReactDOM = require("react-dom");
 import React = require("react");
 import { ISearchButtonProps, SearchButton } from "./Controls/SearchButton";
-
+import * as Helper from './Controls/Helper';
 export class CeoAuthenticationLogSearch implements ComponentFramework.StandardControl<IInputs, IOutputs> {
 	private _container: HTMLDivElement;
- 
+
 	private _inputCeoUserId: string = "";
 	private _inputCeoCompanyId: string = "";
 	private _inputElement: React.ReactElement;
-	public _notifyOutputChanged: () => void;
+	private _notifyOutputChanged: () => void;
 	private _context: ComponentFramework.Context<IInputs>;
 	private searchProps: ISearchButtonProps;
-	public _outputCeoSearch: IOutputs ;
-
+	private _outputCeoSearch: string;
 	constructor() {
 		this.searchProps = {
 			onClick: this.onClickHandler,
@@ -21,18 +20,15 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 			userId: '',
 			disabled: false,
 			context: this._context,
-			isModalOpen:false 
-			
+			isModalOpen: false
 		}
-		this._outputCeoSearch={
-			ceoSearch:"" 
-		}
+		this._outputCeoSearch = "";
 	}
-	public onClickHandler(event: any) {
-		console.log("EVENT: "+ JSON.stringify(event));
-		// this._outputCeoSearch =event;
-		// this._notifyOutputChanged();
-		}
+	public onClickHandler(event: Event) {
+
+		//console.log("Inside index.ts - onclickHandler: " + JSON.stringify(event));
+	}
+
 
 	public init(context: ComponentFramework.Context<IInputs>, notifyOutputChanged: () => void, state: ComponentFramework.Dictionary, container: HTMLDivElement) {
 		this._container = container;
@@ -42,7 +38,7 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 			&& (context.parameters.ceoCompanyId.raw !== null && context.parameters.ceoCompanyId.raw !== undefined)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
 			this.searchProps.companyId = this._inputCeoCompanyId;
-			
+
 		}
 		if ((context.parameters.ceoUserId !== null && context.parameters.ceoUserId !== undefined)
 			&& (context.parameters.ceoUserId.raw !== null && context.parameters.ceoUserId.raw !== undefined)) {
@@ -50,13 +46,16 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 			this.searchProps.userId = this._inputCeoUserId;
 		}
 		if ((context.parameters.ceoSearch !== null && context.parameters.ceoSearch !== undefined)
-		&& (context.parameters.ceoSearch.raw !== null && context.parameters.ceoSearch.raw !== undefined)) {
-		this._outputCeoSearch.ceoSearch = context.parameters.ceoSearch.raw || "";
-	}
-		this.searchProps.disabled = (this.searchProps.companyId.length === 0) ||(this.searchProps.userId.length === 0);
+			&& (context.parameters.ceoSearch.raw !== null && context.parameters.ceoSearch.raw !== undefined)) {
+			this._outputCeoSearch = context.parameters.ceoSearch.raw;
+			this.searchProps.ceoSearch = this._outputCeoSearch;
+			//	console.log("Inside index.ts - init: "+ JSON.stringify(this._outputCeoSearch));
+		}
+		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
 	}
 
 	public updateView(context: ComponentFramework.Context<IInputs>): void {
+
 		if ((context.parameters.ceoCompanyId !== null && context.parameters.ceoCompanyId !== undefined)
 			&& (context.parameters.ceoCompanyId.raw !== null && context.parameters.ceoCompanyId.raw !== undefined)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
@@ -71,14 +70,16 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 
 		if ((context.parameters.ceoSearch !== null && context.parameters.ceoSearch !== undefined)
 			&& (context.parameters.ceoSearch.raw !== null && context.parameters.ceoSearch.raw !== undefined)) {
-			this._outputCeoSearch.ceoSearch = context.parameters.ceoSearch.raw || "";
-			 
+			this._outputCeoSearch = context.parameters.ceoSearch.raw;
+			this.searchProps.ceoSearch = this._outputCeoSearch;
+			console.log("Inside index.ts - update: " + JSON.stringify(context.parameters.ceoSearch.raw));
 		}
 
-		this.searchProps.disabled = (this.searchProps.companyId.length === 0) ||(this.searchProps.userId.length === 0);
+		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
 		this.searchProps.context = context;
-		
+
 		this.renderControl(context);
+
 	}
 
 	private renderControl(context: ComponentFramework.Context<IInputs>) {
@@ -86,7 +87,11 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 	}
 
 	public getOutputs(): IOutputs {
-	return this._outputCeoSearch ;
+		//console.log("Inside index.ts - getOutputs: " + JSON.stringify(this._outputCeoSearch));
+		return {
+			ceoSearch: this._outputCeoSearch,
+			ceoUserId: this._inputCeoUserId, ceoCompanyId: this._inputCeoCompanyId
+		};
 	}
 
 	public destroy(): void {
