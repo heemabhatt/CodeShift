@@ -16,7 +16,6 @@ export interface ISearchButtonProps {
   companyId: string;
   context: ComponentFramework.Context<IInputs>;
   isModalOpen: boolean;
-   
   selection?: IListItem;
 }
 
@@ -27,18 +26,20 @@ export interface ISearchButtonState {
   context: ComponentFramework.Context<IInputs>;
   isModalOpen: boolean;
   selection?: IListItem;
+  selectDisabled:boolean;
   isValid?: boolean;
-  errorMessage?:string;
+  errorMessage?: string;
+  ceoSearch?: string;
 }
 
 export class SearchButton extends React.Component<ISearchButtonProps, ISearchButtonState, ILookupModalProps>{
   private _userInfo: WebApiHelper.IUserInfo;
-  private _ceoUsersResult:any;
+  private _ceoUsersResult: any;
   private _seasResult: any;
   private _sebsResult: any;
   private _allItems: IListItem[] = [];
   private _columns = [
-    
+
     {
       key: "column1",
       name: "Index",
@@ -98,9 +99,11 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       context: this.props.context,
       isModalOpen: false,
       selection: this.props.selection,
-      disabled: (this.props.companyId.length ===0 || this.props.userId.length ===0) ? true : false, 
+      selectDisabled:true,
+      disabled: (this.props.companyId.length === 0 || this.props.userId.length === 0) ? true : false,
       isValid: true,
-      errorMessage:"" 
+      errorMessage: ""
+
     }
     this.onClick = this.onClick.bind(this);
   }
@@ -110,55 +113,56 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       this.setState({
         companyId: this.props.companyId,
         disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0),
-        isValid:true,
-        errorMessage:""
+        isValid: true,
+        errorMessage: ""
       });
     }
-  
+
 
     if (this.props.userId !== prevProps.userId) {
       this.setState({
-        userId: this.props.userId+"***",
+        userId: this.props.userId,
         disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0),
-        isValid:true,
-        errorMessage:""
+        isValid: true,
+        errorMessage: ""
+      });
+    }
+    if (this.props.ceoSearch !== prevProps.ceoSearch) {
+      this.setState({
+        ceoSearch: this.props.ceoSearch,
+
       });
     }
 
+    if(this.props.selection !== prevProps.selection){
+      this.setState({
+        selectDisabled:Helper.isNullObject(this.props.selection)
+      });
+    }
   }
   private hideModal(ev?: any) {
 
-    if(!Helper.isNullObject(this.state.selection)&& this.state.selection?.index >=0 ){
+    if (!Helper.isNullObject(this.state.selection) && this.state.selection?.index >= 0) {
       const ceoSearchResult = WebApiHelper.generateOutput(this._ceoUsersResult[this.state.selection?.index]);
-      console.log("Generated output from pop up selection:: "+ JSON.stringify(ceoSearchResult) );
-       if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
-      // Set output
+      console.log("Generated output from pop up selection:: " + JSON.stringify(ceoSearchResult));
+      if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
+        // Set output
         const output: IOutputs = {
-           ceoSearch: ceoSearchResult
-         };
-         this.props.onClick(output);
-       }
-    }
-    else{
-      this.setState({isValid:false, errorMessage:"Invalid selection from pop-up."});
+          ceoSearch: ceoSearchResult
+        };
+        this.setState({ isModalOpen: false, selection: undefined, selectDisabled:true });
+        this.props.onClick(output);
+      }
+
     }
     // close pop up     
-    this.setState({ isModalOpen: !this.state.isModalOpen });
+    this.setState({ isModalOpen: false,selection: undefined, selectDisabled:true });
   }
-  onSelected(item: IListItem){
- this.setState({selection:item});
+
+  onSelected(item: IListItem) {
+    this.setState({ selection: item,selectDisabled:this.props.selectDisabled });
   }
-// Use this onClick event to test output
-/*
-  async onClick(event:any)
-  {
-    const output: IOutputs = {
-      ceoSearch:"{\"CEOCompanyID\":\"companyp\",\"CEOUserID\":\"userp\",\"CompanyID\":\"7e4336ba-fba4-eb11-b1ac-000d3a5cd972\",\"CompanyName\":\"Paypal\",\"ContactID\":\"7c3378ce-fba4-eb11-b1ac-000d3a5cd972\",\"ContactName\":\"Rushi Bhatt\"}"
-    };
-    this.props.onClick(output);
-  }*/
- 
-   
+
   async onClick(event: any) {
 
     if (Helper.isEmptyString(this.props.companyId) || Helper.isEmptyString(this.props.userId)) {
@@ -185,46 +189,44 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
 
       // Process CEO User Result 
       if (ceoUserResult.length > 1) {
-       this._ceoUsersResult = ceoUserResult;
+        this._ceoUsersResult = ceoUserResult;
         //Show pop up
         this._allItems = [];
 
         for (let i = 0; i < ceoUserResult.length; i++) {
           let item = {
             index: i,
-            fullName: ceoUserResult[i].wfsv_contactid.fullname ,
-            email:ceoUserResult[i].wfsv_contactid.emailaddress1,
-            phone:ceoUserResult[i].wfsv_contactid.mobilephone,
-            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name,  
+            fullName: ceoUserResult[i].wfsv_contactid.fullname,
+            email: ceoUserResult[i].wfsv_contactid.emailaddress1,
+            phone: ceoUserResult[i].wfsv_contactid.mobilephone,
+            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name,
             wcisId: ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid
           };
-          console.log("ITEMS: "+ JSON.stringify(item) );
+          console.log("ITEMS: " + JSON.stringify(item));
           this._allItems.push(item);
         }
-      
+
         this.setState({ isModalOpen: true }); // Open modal 
-        
-     
-        
+
       }
       else if (ceoUserResult.length < 1) {
         this.setState({
           isValid: false,
-          errorMessage:"Invalid CEO User ID or CEO Company ID."
+          errorMessage: "Invalid CEO User ID or CEO Company ID."
         });
         // Webservice lookup - TODO
-        /*
-        this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
-        this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
-        if (Helper.isNullObject(this._seasResult) || Helper.isNullObject(this._sebsResult)) {
-          Helper.showError("Invalid CEO User/Company Combination. No result found from SEAS/SEBS.");
-          this.setState({
-            isValid: false
-          });
-          return;
-        }
-        Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
-       */
+
+        // this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
+        // this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
+        // if (Helper.isNullObject(this._seasResult) || Helper.isNullObject(this._sebsResult)) {
+        //   Helper.showError("Invalid CEO User/Company Combination. No result found from SEAS/SEBS.");
+        //   this.setState({
+        //     isValid: false
+        //   });
+        //   return;
+        // }
+        // Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
+
       }
       else {
         // Process single record
@@ -240,22 +242,23 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
     }
     catch (error) {
       console.log(`An error occurred : ${error}`);
-    }  
+    }
   }
 
   render() {
-    const { disabled } = this.state;
- 
+    const { disabled,selectDisabled } = this.state;
+
     return (
       <React.Fragment>
-        <PrimaryButton text="Search" onClick={this.onClick} disabled={disabled}  styles={buttonStyles} />
-        {this.state.isValid ? null : <Helper.ErrorMessage message={this.state.errorMessage}  />}
+        <PrimaryButton text="Search" onClick={this.onClick} disabled={disabled} styles={buttonStyles} />
+        {this.state.isValid ? null : <Helper.ErrorMessage message={this.state.errorMessage} />}
         <LookupModal
           records={this._allItems}
           columns={this._columns}
           onSelected={this.onSelected.bind(this)}
           isModalOpen={this.state.isModalOpen}
           hideModal={this.hideModal.bind(this)}
+          selectDisabled={selectDisabled}
         />
       </React.Fragment>);
   }
