@@ -38,9 +38,17 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   private _sebsResult: any;
   private _allItems: IListItem[] = [];
   private _columns = [
-   
+    
     {
       key: "column1",
+      name: "Index",
+      fieldName: "index",
+      minWidth: 10,
+      maxWidth: 10,
+      isResizable: false
+    },
+    {
+      key: "column2",
       name: "Full Name",
       fieldName: "fullName",
       minWidth: 50,
@@ -48,7 +56,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       isResizable: true
     },
     {
-      key: "column2",
+      key: "column3",
       name: "Contact Email",
       fieldName: "email",
       minWidth: 150,
@@ -56,7 +64,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       isResizable: true
     },
     {
-      key: "column3",
+      key: "column4",
       name: "Contact Phone",
       fieldName: "phone",
       minWidth: 150,
@@ -64,7 +72,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       isResizable: true
     },
     {
-      key: "column4",
+      key: "column5",
       name: "Company Name",
       fieldName: "companyName",
       minWidth: 150,
@@ -72,20 +80,12 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       isResizable: true
     },
     {
-      key: "column5",
+      key: "column6",
       name: "WCIS ID",
       fieldName: "wcisId",
       minWidth: 150,
       maxWidth: 250,
       isResizable: true
-    },
-    {
-      key: "column6",
-      name: "Index",
-      fieldName: "index",
-      minWidth: 10,
-      maxWidth: 10,
-      isResizable: false
     }
   ];
 
@@ -98,7 +98,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       context: this.props.context,
       isModalOpen: false,
       selection: this.props.selection,
-      disabled: this.props.disabled ? this.props.disabled : true, 
+      disabled: (this.props.companyId.length ===0 || this.props.userId.length ===0) ? true : false, 
       isValid: true,
       errorMessage:"" 
     }
@@ -118,18 +118,47 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
 
     if (this.props.userId !== prevProps.userId) {
       this.setState({
-        userId: this.props.userId,
+        userId: this.props.userId+"***",
         disabled: (this.props.userId.length === 0) || (this.props.companyId.length === 0),
         isValid:true,
         errorMessage:""
       });
     }
+
   }
-  private hideModal(e: any) {
-  
+  private hideModal(ev?: any) {
+
+    if(!Helper.isNullObject(this.state.selection)&& this.state.selection?.index >=0 ){
+      const ceoSearchResult = WebApiHelper.generateOutput(this._ceoUsersResult[this.state.selection?.index]);
+      console.log("Generated output from pop up selection:: "+ JSON.stringify(ceoSearchResult) );
+       if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
+      // Set output
+        const output: IOutputs = {
+           ceoSearch: ceoSearchResult
+         };
+         this.props.onClick(output);
+       }
+    }
+    else{
+      this.setState({isValid:false, errorMessage:"Invalid selection from pop-up."});
+    }
+    // close pop up     
     this.setState({ isModalOpen: !this.state.isModalOpen });
   }
-
+  onSelected(item: IListItem){
+ this.setState({selection:item});
+  }
+// Use this onClick event to test output
+/*
+  async onClick(event:any)
+  {
+    const output: IOutputs = {
+      ceoSearch:"{\"CEOCompanyID\":\"companyp\",\"CEOUserID\":\"userp\",\"CompanyID\":\"7e4336ba-fba4-eb11-b1ac-000d3a5cd972\",\"CompanyName\":\"Paypal\",\"ContactID\":\"7c3378ce-fba4-eb11-b1ac-000d3a5cd972\",\"ContactName\":\"Rushi Bhatt\"}"
+    };
+    this.props.onClick(output);
+  }*/
+ 
+   
   async onClick(event: any) {
 
     if (Helper.isEmptyString(this.props.companyId) || Helper.isEmptyString(this.props.userId)) {
@@ -166,7 +195,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
             fullName: ceoUserResult[i].wfsv_contactid.fullname ,
             email:ceoUserResult[i].wfsv_contactid.emailaddress1,
             phone:ceoUserResult[i].wfsv_contactid.mobilephone,
-            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name, //CEO Company name or Company name?
+            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name,  
             wcisId: ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid
           };
           console.log("ITEMS: "+ JSON.stringify(item) );
@@ -174,15 +203,8 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
         }
       
         this.setState({ isModalOpen: true }); // Open modal 
-       console.log("Display result for pop up selected record: " +  this.props.selection);
-          /*
-        const ceoSearchResult = WebApiHelper.generateOutput(this._ceoUsersResult[this.props.selection?.index]);
-         if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
-           const output: IOutputs = {
-             ceoSearch: ceoSearchResult
-           };
-           this.props.onClick(output);
-         }*/
+        
+     
         
       }
       else if (ceoUserResult.length < 1) {
@@ -202,7 +224,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
           return;
         }
         Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
-        */
+       */
       }
       else {
         // Process single record
@@ -219,10 +241,6 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
     catch (error) {
       console.log(`An error occurred : ${error}`);
     }  
-  }
-
-  onSelected(event: any) {
-    
   }
 
   render() {
