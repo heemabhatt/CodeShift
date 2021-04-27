@@ -22,11 +22,13 @@ const cancelIcon: IIconProps = { iconName: "Cancel" };
 
 export interface ILookupModalProps extends IDetailsListSimpleProps {
   isModalOpen: boolean;
+  selectDisabled:boolean;
   hideModal: (ev?: any) => any;
 }
 
 export interface ILookupModalState {
   selection?: IListItem;
+  selectDisabled:boolean;
 }
 
 const itemAlignmentsStackTokens: IStackTokens = {
@@ -48,12 +50,17 @@ export class LookupModal extends React.Component<
   constructor(props: ILookupModalProps) {
     super(props);
     this.onClick = this.onClick.bind(this);
+    this.setState({
+      selectDisabled:true
+    });
   }
-
+ 
   onSelected(item: IListItem) {
    
-    this.setState({ selection: item });
+    this.setState({ selection: item , selectDisabled:false});
     if (this.props.onSelected) this.props.onSelected(item);
+     
+    
   }
   onClick(event: any) {
    // console.log("Selected item in Lookup Modal: "+ JSON.stringify(this.state.selection));
@@ -62,7 +69,7 @@ export class LookupModal extends React.Component<
   }
   render() {
     const { columns, records } = this.props;
-    const disabled =false;
+     const {selectDisabled} =this.props;
     return (
       <div>
         <Modal
@@ -90,7 +97,7 @@ export class LookupModal extends React.Component<
                 />
               </Stack.Item>
               <Stack.Item align="end" styles={stackItemStyles}>
-                <PrimaryButton text="Select" onClick={this.onClick} disabled={disabled}   />
+                <PrimaryButton text="Select" onClick={this.onClick} disabled={selectDisabled}   />
               </Stack.Item>
             </Stack>
           </div>
