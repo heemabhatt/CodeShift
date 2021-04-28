@@ -160,12 +160,13 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   onSelected(item: IListItem) {
     this.setState({ selection: item, selectDisabled: this.props.selectDisabled });
   }
-  /* // Use this snippet to test output on local harness
+  // Use this snippet to test output on local harness
+  /*
   async onClick()
   {
     const output:IOutputs={ceoCompanyId: this.props.companyId, ceoUserId:this.props.userId, ceoSearch:"ceoSearchResult"};
     this.props.onClick(output);
-  }*/
+  } */
 
   async onClick(event: any) {
 
@@ -217,6 +218,13 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
           isValid: false,
           errorMessage: "Invalid CEO User ID or CEO Company ID."
         });
+        const output: IOutputs = {
+          ceoUserId: this.state.userId,
+          ceoCompanyId: this.state.companyId,
+          ceoSearch: ""
+        };
+      
+        this.props.onClick(output);
         // Webservice lookup - TODO
         // this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
         // this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
