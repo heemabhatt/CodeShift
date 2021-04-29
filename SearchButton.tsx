@@ -193,22 +193,26 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       }
 
       // Process CEO User Result 
-      if (ceoUserResult.length > 1) {
+      if (!Helper.isNullObject(ceoUserResult) && ceoUserResult.length > 1) {
         this._ceoUsersResult = ceoUserResult;
         //Show pop up
         this._allItems = [];
 
         for (let i = 0; i < ceoUserResult.length; i++) {
-          let item = {
-            index: i,
-            fullName: ceoUserResult[i].wfsv_contactid.fullname,
-            email: ceoUserResult[i].wfsv_contactid.emailaddress1,
-            phone: ceoUserResult[i].wfsv_contactid.mobilephone,
-            companyName: ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name,
-            wcisId: ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid
-          };
-          console.log("ITEMS: " + JSON.stringify(item));
-          this._allItems.push(item);
+
+          if (ceoUserResult[i]) {
+            let item = {
+              index: i,
+              fullName: (ceoUserResult[i].wfsv_contactid && ceoUserResult[i].wfsv_contactid.fullname) ? ceoUserResult[i].wfsv_contactid.fullname : "",
+              email: (ceoUserResult[i].wfsv_contactid && ceoUserResult[i].wfsv_contactid.emailaddress1) ? ceoUserResult[i].wfsv_contactid.emailaddress1 : "",
+              phone: (ceoUserResult[i].wfsv_contactid && ceoUserResult[i].wfsv_contactid.mobilephone) ? ceoUserResult[i].wfsv_contactid.mobilephone : "",
+             // WF : company
+              companyName: (ceoUserResult[i].wfsv_ceocompanyid && ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid && ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name) ? ceoUserResult[i].wfsv_ceocompanyid.wfsv_companyid.name : "",
+              wcisId: (ceoUserResult[i].wfsv_ceocompanyid && ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid) ? ceoUserResult[i].wfsv_ceocompanyid.wfsv_wcisclientid : ""
+            };
+            console.log("ITEMS: " + JSON.stringify(item));
+            this._allItems.push(item);
+          }
         }
 
         this.setState({ isModalOpen: true }); // Open modal 
@@ -223,7 +227,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
           ceoCompanyId: this.state.companyId,
           ceoSearch: ""
         };
-      
+
         this.props.onClick(output);
         // Webservice lookup - TODO
         // this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
