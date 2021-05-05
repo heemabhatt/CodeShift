@@ -4,9 +4,9 @@ export interface IUserInfo {
     userFullName: string
 }
 const CEOUSERID_ENTITY = "wfsv_ceouser";
-const CEOCOMPANYID_ENTITY = "";
-const CONTACT_ENTITY = "";
-const COMPANY_ENTITY = "";
+const CEOCOMPANYID_ENTITY = "wfsv_ceocompany";
+const CONTACT_ENTITY = "contact";
+const COMPANY_ENTITY = "account";
 class whoAmIRequest {
     constructor() { }
 }
@@ -15,21 +15,18 @@ interface whoAmIRequest {
 };
 
 export async function retrieveCeoUser(userId: string, companyId: string, context: any) {
-   
-   // USE FOR MCS-COLLAB
+
+    // USE FOR MCS-COLLAB
     const filter = `?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_companyid($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`;
-  
-  //USE FOR WF
-  //const filter = `?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_company($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`; 
+
+    //USE FOR WF
+    //const filter = `?$filter=(wfsv_ceouseridname%20eq%20%27${userId}%27)&$select=wfsv_ceouseridname,wfsv_ceouserid&$expand=wfsv_ceocompanyid($select=wfsv_wcisclientid,wfsv_ceocompanyid,wfsv_ceocompanyname;$filter=wfsv_ceocompanyname%20eq%20%27${companyId}%27;$expand=wfsv_company($select=name)),wfsv_contactid($select=contactid,fullname,telephone1,emailaddress1)`; 
 
     const result = await context.webAPI.retrieveMultipleRecords(CEOUSERID_ENTITY, filter);
-    let ceoUserResult = [] ;
-    if(result.entities.length>0)
-    {
-        for(let i=0;i<result.entities.length;i++)
-        {
-            if(!Helper.isNullObject(result.entities[i].wfsv_ceocompanyid))
-            {
+    let ceoUserResult = [];
+    if (result.entities.length > 0) {
+        for (let i = 0; i < result.entities.length; i++) {
+            if (!Helper.isNullObject(result.entities[i].wfsv_ceocompanyid)) {
                 ceoUserResult.push(result.entities[i]);
             }
         }
@@ -38,20 +35,155 @@ export async function retrieveCeoUser(userId: string, companyId: string, context
     return ceoUserResult;
 }
 
-export function createContact(contactData: any, context: any) {
+export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasResult: any, sebsResult: any, userInfo: any, context: any) {
+
+    let resultStatus = {
+        status: "", //success or failure
+        outputValue: "", //result of generated CEOUser if success
+        errorMessage: "" //detailed error message in case of failure
+    };
+    //Create Contact
+    console.log("Creating contact...");
+    const contactID = await createContact(sebsResult, userInfo, context);
+
+    if (Helper.isEmptyString(contactID)) {
+        resultStatus = {
+            status: "failure", //success or failure
+            outputValue: "", //result of generated CEOUser if success
+            errorMessage: "Cannot Crate New Contact Using SEBS Result" //detailed error message in case of failure
+        };
+        return resultStatus;
+    }
+
+    //Create Account/Company
+    console.log("Creating company...");
+    const companyID = await createCompany(seasResult, sebsResult, context);
+
+    if (Helper.isEmptyString(companyID)) {
+        resultStatus = {
+            status: "failure", //success or failure
+            outputValue: "", //result of generated CEOUser if success
+            errorMessage: "Cannot Crate New Company Using SEAS Result" //detailed error message in case of failure
+        };
+        return resultStatus;
+    }
+
+    //Create CEO Company
+    console.log("Creating CEO company...");
+    const ceoCompanyID = await createCeoCompany(ceoCompanyId, companyID, seasResult, userInfo, context);
+
+    if (Helper.isEmptyString(ceoCompanyID)) {
+        resultStatus = {
+            status: "failure", //success or failure
+            outputValue: "", //result of generated CEOUser if success
+            errorMessage: "Cannot Crate New CEO Company Using SEAS Result" //detailed error message in case of failure
+        };
+        return resultStatus;
+    }
+
+    //Create CEO USER
+    console.log("Creating CEO user...");
+    const ceoUserID = await createCeoUser(ceoUserId,ceoCompanyID, contactID, seasResult, sebsResult, userInfo, context);
+    if (Helper.isEmptyString(ceoUserID)) {
+        resultStatus = {
+            status: "failure", //success or failure
+            outputValue: "", //result of generated CEOUser if success
+            errorMessage: "Cannot Crate New CEO User Using SEAS Result" //detailed error message in case of failure
+        };
+        return resultStatus;
+    }
+
+    const output = {
+        CEOCompanyID: sebsResult.CEOCompanyId,
+        CEOUserID: sebsResult.CEOUserId,
+        CompanyID: companyID, // WF : company
+        CompanyName: sebsResult.AccountName, // WF : company
+        ContactID: contactID,
+        ContactName: sebsResult.FirstName + " " + sebsResult.LastName
+    };
+    console.log("output: " + JSON.stringify(output));
+    resultStatus = {
+        status: "success", //success or failure
+        outputValue: JSON.stringify(output), //result of generated CEOUser if success
+        errorMessage: "" //detailed error message in case of failure
+    };
+    return resultStatus;
+}
+
+export async function createContact(sebsResult: any, userInfo: IUserInfo, context: any) {
+    const contactData = {
+        "lastname": sebsResult.LastName,
+        "firstname": sebsResult.FirstName,
+        "emailaddress1": sebsResult.Email,
+        "telephone1": sebsResult.Phone,
+        "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`
+    };
+    const contactRecord = await context.webAPI.createRecord(CONTACT_ENTITY, contactData);
+    if (contactRecord && contactRecord.id) {
+        console.log("Contact ID:" + contactRecord.id);
+        return contactRecord.id;
+    }
     return "";
 }
 
-export function createCompany(companyData: any, context: any) {
+export async function createCompany(seasResult: any, sebsResult: any, context: any) {
+    const accountData = {
+        name: sebsResult.AccountName, //TODO : Use it from SEAS Result
+        //wfsv_importsource = new OptionSetValue(809660001); //WGPR,
+        address1_line1: seasResult.address1_line1,
+        address1_city: seasResult.address1_city,
+        address1_stateorprovince: seasResult.address1_stateorprovince,
+        address1_country: seasResult.address1_country,
+        address1_postalcode: seasResult.address1_postalcode,
+        //wfsv_sorflag : false
+    };
+    const accountRecord = await context.webAPI.createRecord(COMPANY_ENTITY, accountData);
+
+    if (accountRecord && accountRecord.id) {
+        console.log("Company ID:" + accountRecord.id);
+        return accountRecord.id;
+    }
     return "";
 }
 
-export function createCeoCompany(ceoCompanyData: any, context: any) {
+//TODO: Use SEAS Result for company name, change field name to match WF field name
+export async function createCeoCompany(ceoCompanyId:any,accountRecordID: any, sebsResult: any, userInfo: any, context: any) {
+    const ceoCompanyData = {
+        "wfsv_companyid@odata.bind": `/accounts(${accountRecordID})`,
+        "wfsv_companyid@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName,
+        "wfsv_wcisclientid": "",
+        "wfsv_source": "WGPR",
+        "wfsv_ceocompanyname": ceoCompanyId,
+        "statuscode": 1,
+        "statecode": 0,
+        "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`,
+        "ownerid@OData.Community.Display.V1.FormattedValue": `${userInfo.userFullName}`
+    };
+    const ceoCompanyRecord = await context.webAPI.createRecord(CEOCOMPANYID_ENTITY, ceoCompanyData);
+    if (ceoCompanyRecord && ceoCompanyRecord.id) {
+        console.log("CEO Company ID:" + ceoCompanyRecord.id);
+        return ceoCompanyRecord.id;
+    }
     return "";
 }
 
-export function createCeoUser(ceoUserData: any, context: any) {
-    return "";
+export async function createCeoUser(ceoUserId:any, accountRecordID: any, contactRecordID: any, seasResult: any, sebsResult: any, userInfo: any, context: any) {
+    const ceoUserData = {
+        "wfsv_ceocompanyid@odata.bind": "/wfsv_ceocompanies(" + accountRecordID + ")",
+        "wfsv_ceocompanyid@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName, //TODO: User SEAS result 
+        "wfsv_contactid@odata.bind": "/contacts(" + contactRecordID + ")",
+        "wfsv_contactid@OData.Community.Display.V1.FormattedValue": sebsResult.FirstName + " " + sebsResult.LastName,
+        "wfsv_ceouseridname":ceoUserId,
+        "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`,
+        "ownerid@OData.Community.Display.V1.FormattedValue": `${userInfo.userFullName}`
+    };
+
+    const ceoUserRecord = await context.webAPI.createRecord(CEOUSERID_ENTITY, ceoUserData);
+    if (ceoUserRecord && ceoUserRecord.id) {
+        console.log("CEO User ID:" + ceoUserRecord.id);
+        return ceoUserRecord.id;
+    }
+    return ceoUserRecord.id;
 }
 
 export async function getUserInfo(context: any) {
@@ -84,110 +216,50 @@ export async function getUserInfo(context: any) {
             }
         }
         return userInfo;
-    } 
+    }
     catch (e) {
         console.error(e);
     }
 }
 
-export function generateOutput(result:any)
-{
+export function generateOutput(result: any) {
     console.log("Insidete generateOutput: " + JSON.stringify(result));
-    if(Helper.isNullObject(result) ||
-    Helper.isNullObject(result.wfsv_ceocompanyid))
-    {
+    if (Helper.isNullObject(result) ||
+        Helper.isNullObject(result.wfsv_ceocompanyid)) {
         Helper.showError("Invalid result or CEO company details");
         return "";
     }
-    if( Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid))
+    if (Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid)) //WF : Company
     {
         Helper.showError("Invalid result or company details");
         return "";
     }
-    if( Helper.isNullObject(result.wfsv_contactid))
-    {
+    if (Helper.isNullObject(result.wfsv_contactid)) {
         Helper.showError("Invalid contact details");
         return "";
     }
 
-  if (!Helper.isNullObject(result) &&
-  !Helper.isNullObject(result.wfsv_ceocompanyid) &&
-  !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_ceocompanyname) &&
-  !Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_ceocompanyid) &&
-  !Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid) &&
-  !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.name) &&
-  !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.accountid) &&
-  !Helper.isNullObject(result.wfsv_contactid) )
-  {
+    if (!Helper.isNullObject(result) &&
+        !Helper.isNullObject(result.wfsv_ceocompanyid) &&
+        !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_ceocompanyname) &&
+        !Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_ceocompanyid) &&
+        !Helper.isNullObject(result.wfsv_ceocompanyid.wfsv_companyid) && // WF : company
+        !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.name) && // WF : company
+        !Helper.isEmptyString(result.wfsv_ceocompanyid.wfsv_companyid.accountid) && // WF : company
+        !Helper.isNullObject(result.wfsv_contactid)) {
+        const output = JSON.stringify({
+            CEOCompanyID: result.wfsv_ceocompanyid.wfsv_ceocompanyname,
+            CEOUserID: result.wfsv_ceouseridname,
+            CompanyID: result.wfsv_ceocompanyid.wfsv_companyid.accountid, // WF : company
+            CompanyName: result.wfsv_ceocompanyid.wfsv_companyid.name, // WF : company
+            ContactID: result.wfsv_contactid.contactid,
+            ContactName: result.wfsv_contactid.fullname
+        });
 
-    const output = JSON.stringify({
-    CEOCompanyID: result.wfsv_ceocompanyid.wfsv_ceocompanyname,
-    CEOUserID: result.wfsv_ceouseridname,
-    CompanyID: result.wfsv_ceocompanyid.wfsv_companyid.accountid,
-    CompanyName: result.wfsv_ceocompanyid.wfsv_companyid.name,
-    ContactID:result.wfsv_contactid.contactid,
-    ContactName: result.wfsv_contactid.fullname
-  });  
-
- Helper.logInformation(`Json Output:  ${output}  `);
- return output;
-}
-else{
-    return "";
-}
-}
-
-function getAccountData(seasResult: any) {
-    //create new account using company details
-    const accountData = {
-      name: seasResult.companyName,
-      //wfsv_importsource = new OptionSetValue(809660001); //WGPR,
-      address1_line1: seasResult.address1_line1,
-      address1_city: seasResult.address1_city,
-      address1_stateorprovince: seasResult.address1_stateorprovince,
-      address1_country: seasResult.address1_country,
-      address1_postalcode: seasResult.address1_postalcode,
-      //wfsv_sorflag : false
-    };
-    return accountData;
-  }
-  
-  function getCompanyData(seasResult: any, accountRecord: any) {
-  
-    if (accountRecord != null && accountRecord.id != null) {
-      const companyData = {
-        wfsv_companyid: { "@odata.type": "Microsoft.Dynamics.CRM.account", "accountid": accountRecord.id },
-        wfsv_source: "WGPR",
-        wfsv_ceocompanyname: seasResult.companyName,
-        wfsv_wcisclientid: ""
-      };
+        Helper.logInformation(`Json Output:  ${output}  `);
+        return output;
     }
-    const companyData = {
-      wfsv_source: "WGPR",
-      wfsv_ceocompanyname: seasResult.companyName,
-      wfsv_wcisclientid: ""
-    };
-  
-    return companyData;
-  }
-  
-  function getContactData(sebsResult: any) {
-    const contactData = {
-      "lastname": sebsResult.lastname,
-      "firstname": sebsResult.firstname,
-      "emailaddress1": sebsResult.email,
-      "mobilephone": sebsResult.mobile || sebsResult.phonenumber,
-      "ownerid@odata.bind": "/systemusers(994ca259-ad82-eb11-a812-000d3a3b2f58)" //use WhoAmI() method result here
-    };
-    return contactData;
-  }
-  function getCeoUserData(seasResult: any, accountId: string) {
-    const ceoUserData = {
-      "wfsv_source": "WGPR",
-      "wfsv_ceocompanyname": seasResult.companyName,
-      "wfsv_wcisclientid": "",
-      "wfsv_companyid@OData.Community.Display.V1.FormattedValue": seasResult.companyName,
-      "wfsv_companyid@odata.bind": "/accounts(" + accountId + ")"
-    };
-    return ceoUserData;
-  }
+    else {
+        return "";
+    }
+}
