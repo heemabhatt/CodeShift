@@ -150,6 +150,11 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
           ceoSearch: ceoSearchResult
         };
         this.setState({ isModalOpen: false, selection: undefined, selectDisabled: true });
+        //TODO : Refactor after testing
+        this.setState({
+          isValid: true,
+          errorMessage:  ""
+        });
         this.props.onClick(output);
       }
     }
@@ -164,6 +169,8 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   /*
   async onClick()
   {
+    this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
+
     const output:IOutputs={ceoCompanyId: this.props.companyId, ceoUserId:this.props.userId, ceoSearch:"ceoSearchResult"};
     this.props.onClick(output);
   } */
@@ -193,13 +200,12 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       }
 
       // Process CEO User Result 
-      if (!Helper.isNullObject(ceoUserResult) && ceoUserResult.length > 1) {
+      if (ceoUserResult.length > 1) {
         this._ceoUsersResult = ceoUserResult;
         //Show pop up
         this._allItems = [];
 
         for (let i = 0; i < ceoUserResult.length; i++) {
-
           if (ceoUserResult[i]) {
             let item = {
               index: i,
@@ -218,6 +224,82 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
         this.setState({ isModalOpen: true }); // Open modal 
       }
       else if (ceoUserResult.length < 1) {
+      
+        // Webservice lookup - TODO
+        this._seasResult =await WebServiceHelper.callSeasService(this.props.companyId);
+        this._sebsResult =await WebServiceHelper.callSebsService(this.props.userId);
+      //TODO : Validate for webservice null result. 
+        if (Helper.isNullObject(this._seasResult) || Helper.isEmptyString(this._sebsResult)) {
+          this.setState({
+            isValid: false,
+            errorMessage: "Invalid CEO User/Company Combination. No result found from SEAS/SEBS."
+          });
+          const output: IOutputs = {
+            ceoUserId: this.state.userId,
+            ceoCompanyId: this.state.companyId,
+            ceoSearch: ""
+          };
+  
+          this.props.onClick(output);
+          return;
+        }
+        Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
+
+        //Create CEO User ID record
+        const newCEOUser = await WebApiHelper.createCEOUserRecord(this.props.userId,this.props.companyId, this._seasResult, this._sebsResult, this._userInfo, this.props.context);
+        console.log("newCEOUser"+JSON.stringify(newCEOUser));
+
+        if(newCEOUser && newCEOUser.status ==="success" && !Helper.isEmptyString(newCEOUser.outputValue))
+        {
+          this.setState({
+            isValid: true,
+            errorMessage:  ""
+          });
+          const output: IOutputs = {
+            ceoUserId: this.state.userId,
+            ceoCompanyId: this.state.companyId,
+            ceoSearch: newCEOUser.outputValue
+          };
+  
+          this.props.onClick(output);
+        }
+        else
+        {
+          this.setState({
+            isValid: false,
+            errorMessage: (newCEOUser && newCEOUser.errorMessage) ? newCEOUser.errorMessage : "An error occurred returning result"
+          });
+          const output: IOutputs = {
+            ceoUserId: this.state.userId,
+            ceoCompanyId: this.state.companyId,
+            ceoSearch: ""
+          };
+  
+          this.props.onClick(output);
+        }
+        
+        // Generate Output
+
+      }
+      else if (ceoUserResult.length === 1) {
+        // Process single record
+        Helper.logInformation("Display result for 1 record: ");
+        const ceoSearchResult = WebApiHelper.generateOutput(ceoUserResult[0]);
+        if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
+          //Set output
+          this.setState({
+            isValid: true,
+            errorMessage:  ""
+          });
+          const output: IOutputs = {
+            ceoUserId: this.props.userId,
+            ceoCompanyId: this.props.companyId,
+            ceoSearch: ceoSearchResult
+          };
+          this.props.onClick(output);
+        }
+      }
+      else{
         this.setState({
           isValid: false,
           errorMessage: "Invalid CEO User ID or CEO Company ID."
@@ -229,37 +311,13 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
         };
 
         this.props.onClick(output);
-        // Webservice lookup - TODO
-        // this._seasResult = WebServiceHelper.callSeasService(this.props.companyId);
-        // this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
-        // if (Helper.isNullObject(this._seasResult) || Helper.isNullObject(this._sebsResult)) {
-        //   Helper.showError("Invalid CEO User/Company Combination. No result found from SEAS/SEBS.");
-        //   this.setState({
-        //     isValid: false
-        //   });
-        //   return;
-        // }
-        // Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
-      }
-      else {
-        // Process single record
-        Helper.logInformation("Display result for 1 record: ");
-        const ceoSearchResult = WebApiHelper.generateOutput(ceoUserResult[0]);
-        if (!Helper.isNullObject(ceoSearchResult) && !Helper.isEmptyString(ceoSearchResult)) {
-          //Set output
-          const output: IOutputs = {
-            ceoUserId: this.props.userId,
-            ceoCompanyId: this.props.companyId,
-            ceoSearch: ceoSearchResult
-          };
-          this.props.onClick(output);
-        }
+
       }
     }
     catch (error) {
       console.log(`An error occurred : ${error}`);
     }
-  }
+  } 
 
   render() {
     const { disabled, selectDisabled } = this.state;
