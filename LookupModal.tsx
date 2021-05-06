@@ -56,16 +56,12 @@ export class LookupModal extends React.Component<
   }
  
   onSelected(item: IListItem) {
-   
     this.setState({ selection: item , selectDisabled:false});
     if (this.props.onSelected) this.props.onSelected(item);
-     
-    
   }
   onClick(event: any) {
-   // console.log("Selected item in Lookup Modal: "+ JSON.stringify(this.state.selection));
     if (this.props.onSelected) this.props.onSelected(this.state.selection);
-    this.props.hideModal();
+    this.props.hideModal("selectClicked");
   }
   render() {
     const { columns, records } = this.props;
