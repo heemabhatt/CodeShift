@@ -1,8 +1,14 @@
 import { FontSizes, FontWeights, MessageBar, MessageBarType } from "@fluentui/react";
 import React = require("react");
-
-export function isEmptyString(str?: string) {
+ 
+export function isEmptyString(str: string|null) {
   if (str === null || str === undefined || str.length === 0) {
+    return true;
+  }
+  return false;
+}
+export function isEmptyStringProperty(str?: ComponentFramework.PropertyTypes.StringProperty) {
+  if (str === null || str === undefined ) {
     return true;
   }
   return false;
@@ -17,12 +23,10 @@ export function isNullObject(obj?: any) {
 
 export function showError(error: string) {
   console.log(`An error occurred: ${error}`);
- // alert(`An error occurred: ${error}`);
 }
 
 export function logInformation(message: any) {
   console.log(message);
- // alert(message);
 }
 
 export function ErrorMessage(props: any) {
