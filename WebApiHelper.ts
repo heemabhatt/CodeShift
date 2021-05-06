@@ -42,9 +42,23 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
         outputValue: "", //result of generated CEOUser if success
         errorMessage: "" //detailed error message in case of failure
     };
+
+     //Create Account/Company
+     console.log("Creating company...");
+     const companyID = await createCompany(seasResult, sebsResult, context);
+ 
+     if (Helper.isEmptyString(companyID)) {
+         resultStatus = {
+             status: "failure", //success or failure
+             outputValue: "", //result of generated CEOUser if success
+             errorMessage: "Cannot Crate New Company Using SEAS Result" //detailed error message in case of failure
+         };
+         return resultStatus;
+     }
+     
     //Create Contact
     console.log("Creating contact...");
-    const contactID = await createContact(sebsResult, userInfo, context);
+    const contactID = await createContact(companyID, sebsResult, userInfo, context);
 
     if (Helper.isEmptyString(contactID)) {
         resultStatus = {
@@ -55,18 +69,7 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
         return resultStatus;
     }
 
-    //Create Account/Company
-    console.log("Creating company...");
-    const companyID = await createCompany(seasResult, sebsResult, context);
-
-    if (Helper.isEmptyString(companyID)) {
-        resultStatus = {
-            status: "failure", //success or failure
-            outputValue: "", //result of generated CEOUser if success
-            errorMessage: "Cannot Crate New Company Using SEAS Result" //detailed error message in case of failure
-        };
-        return resultStatus;
-    }
+   
 
     //Create CEO Company
     console.log("Creating CEO company...");
@@ -110,22 +113,6 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
     return resultStatus;
 }
 
-export async function createContact(sebsResult: any, userInfo: IUserInfo, context: any) {
-    const contactData = {
-        "lastname": sebsResult.LastName,
-        "firstname": sebsResult.FirstName,
-        "emailaddress1": sebsResult.Email,
-        "telephone1": sebsResult.Phone,
-        "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`
-    };
-    const contactRecord = await context.webAPI.createRecord(CONTACT_ENTITY, contactData);
-    if (contactRecord && contactRecord.id) {
-        console.log("Contact ID:" + contactRecord.id);
-        return contactRecord.id;
-    }
-    return "";
-}
-
 export async function createCompany(seasResult: any, sebsResult: any, context: any) {
     const accountData = {
         name: sebsResult.AccountName, //TODO : Use it from SEAS Result
@@ -142,6 +129,24 @@ export async function createCompany(seasResult: any, sebsResult: any, context: a
     if (accountRecord && accountRecord.id) {
         console.log("Company ID:" + accountRecord.id);
         return accountRecord.id;
+    }
+    return "";
+}
+
+export async function createContact(companyID:any, sebsResult: any, userInfo: IUserInfo, context: any) {
+    const contactData = {
+        "lastname": sebsResult.LastName,
+        "firstname": sebsResult.FirstName,
+        "parentcustomerid_account@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName,
+"parentcustomerid_account@odata.bind": `/accounts(${companyID})`,
+        "emailaddress1": sebsResult.Email,
+        "telephone1": sebsResult.Phone,
+        "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`
+    };
+    const contactRecord = await context.webAPI.createRecord(CONTACT_ENTITY, contactData);
+    if (contactRecord && contactRecord.id) {
+        console.log("Contact ID:" + contactRecord.id);
+        return contactRecord.id;
     }
     return "";
 }
