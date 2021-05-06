@@ -1,4 +1,5 @@
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
+import * as Helper from './Controls/Helper';
 import ReactDOM = require("react-dom");
 import React = require("react");
 import { ISearchButtonProps, SearchButton } from "./Controls/SearchButton";
@@ -28,19 +29,19 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 		this._container = container;
 		this._notifyOutputChanged = notifyOutputChanged;
 
-		if ((context.parameters.ceoCompanyId !== null && context.parameters.ceoCompanyId !== undefined)
-			&& (context.parameters.ceoCompanyId.raw !== null && context.parameters.ceoCompanyId.raw !== undefined)) {
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoCompanyId) 
+			&& !Helper.isEmptyString(context.parameters.ceoCompanyId.raw)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
 			this.searchProps.companyId = this._inputCeoCompanyId;
 		}
-		if ((context.parameters.ceoUserId !== null && context.parameters.ceoUserId !== undefined)
-			&& (context.parameters.ceoUserId.raw !== null && context.parameters.ceoUserId.raw !== undefined)) {
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoUserId) 
+		&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
 			this._inputCeoUserId = context.parameters.ceoUserId.raw || "";
 			this.searchProps.userId = this._inputCeoUserId;
 		}
-		if ((context.parameters.ceoSearch !== null && context.parameters.ceoSearch !== undefined)
-			&& (context.parameters.ceoSearch.raw !== null && context.parameters.ceoSearch.raw !== undefined)) {
-			this._outputCeoSearch = context.parameters.ceoSearch.raw;
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoSearch) 
+		&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
+			this._outputCeoSearch = context.parameters.ceoSearch.raw || "" ;
 			this.searchProps.ceoSearch = this._outputCeoSearch;
 		}
 		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
@@ -48,23 +49,22 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 
 	public updateView(context: ComponentFramework.Context<IInputs>): void {
 
-		if ((context.parameters.ceoCompanyId !== null && context.parameters.ceoCompanyId !== undefined)
-			&& (context.parameters.ceoCompanyId.raw !== null && context.parameters.ceoCompanyId.raw !== undefined)) {
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoCompanyId) 
+		&& !Helper.isEmptyString(context.parameters.ceoCompanyId.raw)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
 			this.searchProps.companyId = this._inputCeoCompanyId;
 		}
-		if ((context.parameters.ceoUserId !== null && context.parameters.ceoUserId !== undefined)
-			&& (context.parameters.ceoUserId.raw !== null && context.parameters.ceoUserId.raw !== undefined)) {
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoUserId) 
+		&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
 			this._inputCeoUserId = context.parameters.ceoUserId.raw || "";
 			this.searchProps.userId = this._inputCeoUserId;
 		}
 
-		if ((context.parameters.ceoSearch !== null && context.parameters.ceoSearch !== undefined)
-			&& (context.parameters.ceoSearch.raw !== null && context.parameters.ceoSearch.raw !== undefined)) {
-			this._outputCeoSearch = context.parameters.ceoSearch.raw;
-			this.searchProps.ceoSearch = this._outputCeoSearch;
+		if ( !Helper.isEmptyStringProperty(context.parameters.ceoSearch) 
+		&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
+			this._outputCeoSearch = context.parameters.ceoSearch.raw || "";
 		}
-
+		 
 		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
 		this.searchProps.context = context;
 
@@ -77,12 +77,11 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 
 	public onClickHandler(event: any) {
 		this._outputCeoSearch = JSON.stringify(event);
-		console.log("on Click Handler: " + this._outputCeoSearch);
 		this._notifyOutputChanged();
 	}
 
 	public getOutputs(): IOutputs {
-		console.log("Returning Output... " + this._outputCeoSearch);
+		console.log("Returning Output: " + this._outputCeoSearch);
 		return {
 			ceoSearch: this._outputCeoSearch,
 			ceoUserId: this._inputCeoUserId, ceoCompanyId: this._inputCeoCompanyId
