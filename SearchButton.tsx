@@ -1,4 +1,4 @@
-import { BaseButton, Button, loadTheme, PrimaryButton } from '@fluentui/react';
+import { BaseButton, Button, getTheme, loadTheme, mergeStyles, PrimaryButton } from '@fluentui/react';
 import * as React from 'react';
 import { IInputs, IOutputs } from '../generated/ManifestTypes';
 import { IListItem } from './DetailsListSimple';
@@ -8,7 +8,7 @@ import * as WebServiceHelper from './WebServiceHelper';
 import { ILookupModalProps, LookupModal } from './LookupModal';
 import { buttonStyles } from './style/Search-styles';
 import { indexColumnStyles } from './style/DetailsListSimple-styles';
-
+const theme = getTheme();
 export interface ISearchButtonProps {
   onClick(event: any): void;
   [x: string]: any;
@@ -40,53 +40,55 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   private _sebsResult: any;
   private _allItems: IListItem[] = [];
   private _columns = [
+   
     {
       key: "column1",
-      name: "Index",
-      fieldName: "index",
-      minWidth: 10,
-      maxWidth: 10,
-      isResizable: false 
+      name: "Full Name",
+      fieldName: "fullName",
+      minWidth: 150,
+      maxWidth: 250,
+      isResizable: true
     },
     {
       key: "column2",
-      name: "Full Name",
-      fieldName: "fullName",
-      minWidth: 50,
-      maxWidth: 100,
+      name: "Contact Email",
+      fieldName: "email",
+      minWidth: 150,
+      maxWidth: 250,
       isResizable: true
     },
     {
       key: "column3",
-      name: "Contact Email",
-      fieldName: "email",
-      minWidth: 150,
-      maxWidth: 200,
+      name: "Contact Phone",
+      fieldName: "phone",
+      minWidth: 100,
+      maxWidth: 150,
       isResizable: true
     },
     {
       key: "column4",
-      name: "Contact Phone",
-      fieldName: "phone",
+      name: "Company Name",
+      fieldName: "companyName",
       minWidth: 150,
       maxWidth: 250,
       isResizable: true
     },
     {
       key: "column5",
-      name: "Company Name",
-      fieldName: "companyName",
-      minWidth: 150,
-      maxWidth: 350,
+      name: "WCIS ID",
+      fieldName: "wcisId",
+      minWidth: 100,
+      maxWidth: 150,
       isResizable: true
     },
     {
       key: "column6",
-      name: "WCIS ID",
-      fieldName: "wcisId",
-      minWidth: 150,
-      maxWidth: 250,
-      isResizable: true
+      name: "",
+      fieldName: "index",
+      minWidth: 10,
+      maxWidth: 10,
+      isResizable: false,
+      className: mergeStyles({ visibility: "hidden", padding:"0px", margin:"0px" })
     }
   ];
 
@@ -172,15 +174,6 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   onSelected(item: IListItem) {
     this.setState({ selection: item, selectDisabled: this.props.selectDisabled });
   }
-  // Use this snippet to test output on local harness
-  /*
-  async onClick()
-  {
-    this._sebsResult = WebServiceHelper.callSebsService(this.props.userId);
-
-    const output:IOutputs={ceoCompanyId: this.props.companyId, ceoUserId:this.props.userId, ceoSearch:"ceoSearchResult"};
-    this.props.onClick(output);
-  } */
 
   async onClick(event: any) {
 
@@ -230,12 +223,11 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
 
         this.setState({ isModalOpen: true }); // Open modal 
       }
-      else if (ceoUserResult.length < 1) {
-
-        // Webservice lookup - TODO
+      else if (ceoUserResult.length < 1) 
+      {
         this._seasResult = await WebServiceHelper.callSeasService(this.props.companyId);
         this._sebsResult = await WebServiceHelper.callSebsService(this.props.userId);
-        //TODO : Validate for webservice null result. 
+        
         if (Helper.isNullObject(this._seasResult) || Helper.isEmptyString(this._sebsResult)) {
           this.setState({
             isValid: false,
@@ -299,7 +291,6 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
         };
       
       this.props.onClick(output);
-
     }
   }
     catch (error) {
