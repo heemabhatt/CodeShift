@@ -7,7 +7,7 @@ import * as WebApiHelper from './WebApiHelper';
 import * as WebServiceHelper from './WebServiceHelper';
 import { ILookupModalProps, LookupModal } from './LookupModal';
 import { buttonStyles } from './style/Search-styles';
-import { indexColumnStyles } from './style/DetailsListSimple-styles';
+
 const theme = getTheme();
 export interface ISearchButtonProps {
   onClick(event: any): void;
