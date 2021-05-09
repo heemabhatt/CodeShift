@@ -19,7 +19,7 @@ export const listStyles = mergeStyleSets({
   body: {},
   container: {
     maxHeight: "300px",
-    maxWidth: "900px"
+    maxWidth: "1000px"
   }
 });
 
