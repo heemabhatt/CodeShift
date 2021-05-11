@@ -8,7 +8,10 @@ export async function callSeasService(ceoCompanyId: string, context: any) {
         (response: string) => {
           let result = JSON.parse(JSON.parse(response).Response);
               if(result.Status == "success"){
-                seasResult= result.Base64; //TODO: replace with output parameter name Base64
+                seasResult= result.webServiceResult; 
+
+              //  seasResult = "{\"companyName\":\"WQA CCER5 COMPANY B\",\"address1_line1\":\"300 Park Ave. Suite 14001\",\"address1_city\":\"Minneapolis\",\"address1_stateorprovince\":\"CA\",\"address1_country\":\"US\",\"address1_postalcode\":\"43555\"}";
+                return seasResult;
               }
           },
           (error) => {
@@ -61,7 +64,8 @@ export async function callSebsService(ceoCompanyId: string,ceoUserId: string, co
         (response: string) => {
           let result = JSON.parse(JSON.parse(response).Response);
               if(result.Status == "success"){
-                sebsResult= result.Base64; //replace with output parameter name Base64
+                sebsResult= result.webServiceResult; 
+                return sebsResult;
               }
           },
           (error) => {
