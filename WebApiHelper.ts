@@ -45,7 +45,7 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
 
      //Create Account/Company
      console.log("Creating company...");
-     const companyID = await createCompany(seasResult, sebsResult, context);
+     const companyID = await createCompany(seasResult, context);
  
      if (Helper.isEmptyString(companyID)) {
          resultStatus = {
@@ -58,7 +58,7 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
      
     //Create Contact
     console.log("Creating contact...");
-    const contactID = await createContact(companyID, sebsResult, userInfo, context);
+    const contactID = await createContact(companyID,seasResult, sebsResult, userInfo, context);
 
     if (Helper.isEmptyString(contactID)) {
         resultStatus = {
@@ -113,15 +113,15 @@ export async function createCEOUserRecord(ceoUserId:any,ceoCompanyId:any,seasRes
     return resultStatus;
 }
 
-export async function createCompany(seasResult: any, sebsResult: any, context: any) {
+export async function createCompany(seasResult: any, context: any) {
     const accountData = {
-        name: sebsResult.AccountName, //TODO : Use it from SEAS Result
+        name: seasResult.CompanyName, 
         //wfsv_importsource = new OptionSetValue(809660001); //WGPR,
-        address1_line1: seasResult.address1_line1,
-        address1_city: seasResult.address1_city,
-        address1_stateorprovince: seasResult.address1_stateorprovince,
-        address1_country: seasResult.address1_country,
-        address1_postalcode: seasResult.address1_postalcode,
+        address1_line1: seasResult.Address1Line1,
+        address1_city: seasResult.Address1City,
+        address1_stateorprovince: seasResult.Address1State,
+        address1_country: seasResult.Address1Country,
+        address1_postalcode: seasResult.Address1ZipCode,
         //wfsv_sorflag : false
     };
     const accountRecord = await context.webAPI.createRecord(COMPANY_ENTITY, accountData);
@@ -133,14 +133,14 @@ export async function createCompany(seasResult: any, sebsResult: any, context: a
     return "";
 }
 
-export async function createContact(companyID:any, sebsResult: any, userInfo: IUserInfo, context: any) {
+export async function createContact(companyID:any,seasResult:any, sebsResult: any, userInfo: IUserInfo, context: any) {
     const contactData = {
         "lastname": sebsResult.LastName,
         "firstname": sebsResult.FirstName,
-        "parentcustomerid_account@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName,
-"parentcustomerid_account@odata.bind": `/accounts(${companyID})`,
+        "parentcustomerid_account@OData.Community.Display.V1.FormattedValue": seasResult.CompanyName,
+        "parentcustomerid_account@odata.bind": `/accounts(${companyID})`,
         "emailaddress1": sebsResult.Email,
-        "telephone1": sebsResult.Phone,
+        "telephone1": sebsResult.PhoneNumber || sebsResult.MobileNumber,
         "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`
     };
     const contactRecord = await context.webAPI.createRecord(CONTACT_ENTITY, contactData);
@@ -152,10 +152,10 @@ export async function createContact(companyID:any, sebsResult: any, userInfo: IU
 }
 
 //TODO: Use SEAS Result for company name, change field name to match WF field name
-export async function createCeoCompany(ceoCompanyId:any,accountRecordID: any, sebsResult: any, userInfo: any, context: any) {
+export async function createCeoCompany(ceoCompanyId:any,accountRecordID: any, seasResult: any, userInfo: any, context: any) {
     const ceoCompanyData = {
         "wfsv_companyid@odata.bind": `/accounts(${accountRecordID})`,
-        "wfsv_companyid@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName,
+        "wfsv_companyid@OData.Community.Display.V1.FormattedValue": seasResult.CompanyName,
         "wfsv_wcisclientid": "",
         "wfsv_source": "WGPR",
         "wfsv_ceocompanyname": ceoCompanyId,
@@ -175,9 +175,9 @@ export async function createCeoCompany(ceoCompanyId:any,accountRecordID: any, se
 export async function createCeoUser(ceoUserId:any, accountRecordID: any, contactRecordID: any, seasResult: any, sebsResult: any, userInfo: any, context: any) {
     const ceoUserData = {
         "wfsv_ceocompanyid@odata.bind": "/wfsv_ceocompanies(" + accountRecordID + ")",
-        "wfsv_ceocompanyid@OData.Community.Display.V1.FormattedValue": sebsResult.AccountName, //TODO: User SEAS result 
+        "wfsv_ceocompanyid@OData.Community.Display.V1.FormattedValue": seasResult.CompanyName, 
         "wfsv_contactid@odata.bind": "/contacts(" + contactRecordID + ")",
-        "wfsv_contactid@OData.Community.Display.V1.FormattedValue": sebsResult.FirstName + " " + sebsResult.LastName,
+        "wfsv_contactid@OData.Community.Display.V1.FormattedValue": sebsResult.FullName,
         "wfsv_ceouseridname":ceoUserId,
         "ownerid@odata.bind": `/systemusers(${userInfo.userGuid})`,
         "ownerid@OData.Community.Display.V1.FormattedValue": `${userInfo.userFullName}`
