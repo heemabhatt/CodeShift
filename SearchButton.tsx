@@ -1,14 +1,13 @@
-import { BaseButton, Button, getTheme, loadTheme, mergeStyles, PrimaryButton } from '@fluentui/react';
+import { mergeStyles, PrimaryButton } from '@fluentui/react';
 import * as React from 'react';
 import { IInputs, IOutputs } from '../generated/ManifestTypes';
 import { IListItem } from './DetailsListSimple';
 import * as Helper from './Helper';
 import * as WebApiHelper from './WebApiHelper';
-import * as WebServiceHelper from './WebServiceHelper';
+import * as WebServiceHelper from './WebServiceHelper1';
 import { ILookupModalProps, LookupModal } from './LookupModal';
 import { buttonStyles } from './style/Search-styles';
 
-const theme = getTheme();
 export interface ISearchButtonProps {
   onClick(event: any): void;
   [x: string]: any;
@@ -174,9 +173,31 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
   onSelected(item: IListItem) {
     this.setState({ selection: item, selectDisabled: this.props.selectDisabled });
   }
+  async onClick(event: any){
+    this._seasResult = await WebServiceHelper.callSeasService(this.props.companyId, this.props.context);
+    this._sebsResult = await WebServiceHelper.callSebsService(this.props.companyId, this.props.userId, this.props.context);
+    
+    if (Helper.isNullObject(this._seasResult) || Helper.isEmptyString(this._sebsResult)) {
+      this.setState({
+        isValid: false,
+        errorMessage: "Invalid CEO User/Company Combination. No result found from SEAS/SEBS."
+      });
+      const output: IOutputs = {
+        ceoUserId: this.state.userId,
+        ceoCompanyId: this.state.companyId,
+        ceoSearch: ""
+      };
 
+      this.props.onClick(output);
+      return;
+    }
+    Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
+
+  }
+/*
   async onClick(event: any) {
-
+    
+    console.log(this.props.context);
     if (Helper.isEmptyString(this.props.companyId) || Helper.isEmptyString(this.props.userId)) {
       Helper.showError(`Please enter valid CEO User ID or CEO Company ID.`);
       return;
@@ -225,8 +246,8 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       }
       else if (ceoUserResult.length < 1) 
       {
-        this._seasResult = await WebServiceHelper.callSeasService(this.props.companyId);
-        this._sebsResult = await WebServiceHelper.callSebsService(this.props.userId);
+        this._seasResult = await WebServiceHelper.callSeasService(this.props.companyId, this.props.context);
+        this._sebsResult = await WebServiceHelper.callSebsService(this.props.companyId, this.props.userId, this.props.context);
         
         if (Helper.isNullObject(this._seasResult) || Helper.isEmptyString(this._sebsResult)) {
           this.setState({
@@ -297,7 +318,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       console.log(`An error occurred : ${error}`);
     }
   }
-
+*/
   render() {
     const { disabled, selectDisabled } = this.state;
 
