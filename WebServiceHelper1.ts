@@ -1,46 +1,69 @@
-
 export async function callSeasService(ceoCompanyId: string, context: any) {
     console.log("Inside SEAS Service...");
-    let actionName = "wfsv_CEOCompanyIdSearch"; 
+    let actionName = "wfsv_CEOCompanyIdSearch";
     const apiUrl = getAPIUrl(context, actionName);
-    let seasResult:string;
-    callAction(apiUrl, ceoCompanyId, "Calling SEAS Service...").then(
+    let seasResult: string;
+    const seasInput = JSON.stringify({
+        CEOCompanyId:ceoCompanyId
+    });
+    callAction(apiUrl, seasInput).then(
         (response: string) => {
-          let result = JSON.parse(JSON.parse(response).Response);
-              if(result.Status == "success"){
-                seasResult= result.webServiceResult; 
-
-              //  seasResult = "{\"companyName\":\"WQA CCER5 COMPANY B\",\"address1_line1\":\"300 Park Ave. Suite 14001\",\"address1_city\":\"Minneapolis\",\"address1_stateorprovince\":\"CA\",\"address1_country\":\"US\",\"address1_postalcode\":\"43555\"}";
+            let result = JSON.parse(JSON.parse(response).Response);
+            console.log("result inside seas call: "+ JSON.stringify(result));
+            if (result.ResponseStatus === "Success") {
+                seasResult = result.CEOCompanyIdDetails;
+                
                 return seasResult;
-              }
-          },
-          (error) => {
+            }
+        },
+        (error) => {
+            return "";
+        });
+}
 
-          });
-  }
+export async function callSebsService(ceoCompanyId: string, ceoUserId: string, context: any) {
+    console.log("Inside SEBS Service...");
+    let actionName = "wfsv_CEOUserIdSearch";
+    const apiUrl = getAPIUrl(context, actionName);
+    let sebsResult: string;
+    let sebsInput = JSON.stringify({
+        CEOCompanyId: ceoCompanyId,
+        CEOUserId: ceoUserId
+    });
+    callAction(apiUrl, sebsInput).then(
+        (response: string) => {
+            let result = JSON.parse(JSON.parse(response).Response);
+            console.log("result inside sebs call: "+ JSON.stringify(result));
+            if (result.ResponseStatus === "Success") {
+                sebsResult = result.CEOUserIdDetails;
+                return sebsResult;
+            }
+        },
+        (error) => {
+            return "";
+        });
+}
 
-
-export const  callAction = (apiUrl: string, jsonParameters: string, progressMessage: string) : Promise<any> => {
+export const callAction = (apiUrl: string, jsonParameters: string): Promise<any> => {
     let request = new XMLHttpRequest();
 
     return new Promise(function (resolve, reject) {
-        request.open("POST", apiUrl , true); // for CRM
+        request.open("POST", apiUrl, true); // for CRM
         request.onload = function () {
-             if (request.status >= 200 && request.status < 300){
+            if (request.status >= 200 && request.status < 300) {
                 resolve(request.response);
-             }
-            else
-            {
+            }
+            else {
                 reject(`${apiUrl} failed`);
             }
         };
 
-        request.onerror = function () { 
-            reject(`${apiUrl} failed`); 
+        request.onerror = function () {
+            reject(`${apiUrl} failed`);
         }
 
         request.onabort = function () {
-            reject(`${apiUrl} aborted`); 
+            reject(`${apiUrl} aborted`);
         }
 
         request.setRequestHeader("OData-MaxVersion", "4.0");
@@ -49,48 +72,23 @@ export const  callAction = (apiUrl: string, jsonParameters: string, progressMess
         request.setRequestHeader("Content-Type", "application/json; charset=utf-8");
         request.send(jsonParameters);
     });
-} 
-
-export async function callSebsService(ceoCompanyId: string,ceoUserId: string, context: any) {
-    console.log("Inside SEBS Service...");
-    let actionName = "wfsv_CEOUserIdSearch"; 
-    const apiUrl = getAPIUrl(context, actionName);
-    let sebsResult:string;
-    let jsonParameters =  JSON.stringify({
-        ceoCompanyId:ceoCompanyId,
-        ceoUserId:ceoUserId
-    });
-    callAction(apiUrl, jsonParameters, "Calling SEBS Service...").then(
-        (response: string) => {
-          let result = JSON.parse(JSON.parse(response).Response);
-              if(result.Status == "success"){
-                sebsResult= result.webServiceResult; 
-                return sebsResult;
-              }
-          },
-          (error) => {
-
-          });
 }
 
-export function isValidSEBSResult(sebsResult:any)
-{
-    if(sebsResult && sebsResult.AccountName && sebsResult.LastName)
-    {
+export function isValidSEBSResult(sebsResult: any) {
+    if (sebsResult && sebsResult.AccountName && sebsResult.LastName) {
         return true;
     }
     return false;
 }
- 
-export function isValidSEASResult(seasResult:any)
-{
-    if(seasResult && seasResult.CompanyName ) //TODO: Add more mandatory fields in condition
+
+export function isValidSEASResult(seasResult: any) {
+    if (seasResult && seasResult.CompanyName) //TODO: Add more mandatory fields in condition
     {
         return true;
     }
     return false;
 }
 
-export function getAPIUrl(context:any, actionName:string) {
-    return context.page.getClientUrl() + actionName;
+export function getAPIUrl(context: any, actionName: string) {
+    return context.page.getClientUrl() + "/api/data/v9.1/"+ actionName;
 }
