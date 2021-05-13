@@ -35,8 +35,8 @@ export interface ISearchButtonState {
 export class SearchButton extends React.Component<ISearchButtonProps, ISearchButtonState, ILookupModalProps>{
   private _userInfo: WebApiHelper.IUserInfo;
   private _ceoUsersResult: any;
-  private _seasResult: any;
-  private _sebsResult: any;
+  private _seasResult: WebServiceHelper.IWebServiceResult;
+  private _sebsResult: WebServiceHelper.IWebServiceResult;
   private _allItems: IListItem[] = [];
   private _columns = [
    
@@ -177,7 +177,7 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
     this._seasResult = await WebServiceHelper.callSeasService(this.props.companyId, this.props.context);
     this._sebsResult = await WebServiceHelper.callSebsService(this.props.companyId, this.props.userId, this.props.context);
     
-    if (Helper.isNullObject(this._seasResult) || Helper.isEmptyString(this._sebsResult)) {
+    if (Helper.isNullObject(this._seasResult) || Helper.isNullObject(this._sebsResult)  ) {
       this.setState({
         isValid: false,
         errorMessage: "Invalid CEO User/Company Combination. No result found from SEAS/SEBS."
@@ -191,8 +191,10 @@ export class SearchButton extends React.Component<ISearchButtonProps, ISearchBut
       this.props.onClick(output);
       return;
     }
-    Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
-
+    else{
+      Helper.logInformation(`seasResult: ${JSON.stringify(this._seasResult)}   sebsResult: ${JSON.stringify(this._sebsResult)}`);
+      //TODO: User this._seasResult.Result and Message to proceed further
+    }
   }
 /*
   async onClick(event: any) {
