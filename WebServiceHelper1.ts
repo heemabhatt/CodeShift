@@ -1,47 +1,109 @@
+const SEAS_ACTION ="wfsv_CEOCompanyIdSearch";
+const SEBS_ACTION = "wfsv_CEOUserIdSearch";
+
+export interface IWebServiceResult{
+    result:any,
+    message: string
+}
+
+export function getAPIUrl(context: any, actionName: string) {
+    return context.page.getClientUrl() + "/api/data/v9.1/"+ actionName;
+}
+
 export async function callSeasService(ceoCompanyId: string, context: any) {
     console.log("Inside SEAS Service...");
-    let actionName = "wfsv_CEOCompanyIdSearch";
-    const apiUrl = getAPIUrl(context, actionName);
-    let seasResult: string;
+    const apiUrl = getAPIUrl(context, SEAS_ACTION);
+    
     const seasInput = JSON.stringify({
         CEOCompanyId:ceoCompanyId
     });
+
+    let seasResponse : IWebServiceResult= {
+        message:"",
+        result:""
+    };
+ 
     callAction(apiUrl, seasInput).then(
         (response: string) => {
-            let result = JSON.parse(JSON.parse(response).Response);
-            console.log("result inside seas call: "+ JSON.stringify(result));
-            if (result.ResponseStatus === "Success") {
-                seasResult = result.CEOCompanyIdDetails;
-                
-                return seasResult;
+            if( isValidSEASResponse(response)){
+                let result = JSON.parse(response);  
+                 
+                if(result.CEOCompanyIdDetails.SAESResultDetails && result.CEOCompanyIdDetails.SAESResultDetails.CompanyName) //TODO: validate required fields
+                {
+                    seasResponse.result = result.CEOCompanyIdDetails.SAESResultDetails
+                }
+                else{
+                    seasResponse.message = "No Result Found From SEAS Call."
+                }
+            }
+            else{
+                seasResponse.result ="",
+                seasResponse.message = "Invalid result from SEAS."
             }
         },
         (error) => {
-            return "";
+            seasResponse.result ="",
+            seasResponse.message = "An Error Occurred returning result from SEAS :"+error
         });
+        return seasResponse;
+}
+
+export function isValidSEASResponse(response:any)
+{
+    if(response && response.ResponseStatus && response.ResponseStatus === "Success" &&  response.CEOCompanyIdDetails) 
+    {
+        return true;
+    }
+    return false;
 }
 
 export async function callSebsService(ceoCompanyId: string, ceoUserId: string, context: any) {
     console.log("Inside SEBS Service...");
-    let actionName = "wfsv_CEOUserIdSearch";
-    const apiUrl = getAPIUrl(context, actionName);
-    let sebsResult: string;
+    const apiUrl = getAPIUrl(context, SEBS_ACTION);
+
     let sebsInput = JSON.stringify({
         CEOCompanyId: ceoCompanyId,
         CEOUserId: ceoUserId
     });
+
+    let sebsResponse : IWebServiceResult= {
+        message:"",
+        result:""
+    };
+
     callAction(apiUrl, sebsInput).then(
         (response: string) => {
-            let result = JSON.parse(JSON.parse(response).Response);
-            console.log("result inside sebs call: "+ JSON.stringify(result));
-            if (result.ResponseStatus === "Success") {
-                sebsResult = result.CEOUserIdDetails;
-                return sebsResult;
+            if( isValidSEBSResponse(response)){
+                let result = JSON.parse(response);  
+                 
+                if(result.CEOCompanyIdDetails.SEBSResultDetails && result.CEOUserIdDetails.SEBSResultDetails.LastName) //TODO: validate required fields
+                {
+                    sebsResponse.result = result.CEOUserIdDetails.SEBSResultDetails
+                }
+                else{
+                    sebsResponse.message = "No Result Found From SEBS Call."
+                }
+            }
+            else{
+                sebsResponse.result ="",
+                sebsResponse.message = "Invalid result from SEBS."
             }
         },
         (error) => {
-            return "";
+            sebsResponse.result ="",
+            sebsResponse.message = "An Error Occurred returning result from SEBS :"+error
         });
+
+        return sebsResponse;
+}
+
+export function isValidSEBSResponse(response:any)
+{
+    if(response && response.ResponseStatus && response.ResponseStatus === "Success" &&  response.CEOUserIdDetails) 
+    {
+        return true;
+    }
+    return false;
 }
 
 export const callAction = (apiUrl: string, jsonParameters: string): Promise<any> => {
@@ -72,23 +134,4 @@ export const callAction = (apiUrl: string, jsonParameters: string): Promise<any>
         request.setRequestHeader("Content-Type", "application/json; charset=utf-8");
         request.send(jsonParameters);
     });
-}
-
-export function isValidSEBSResult(sebsResult: any) {
-    if (sebsResult && sebsResult.AccountName && sebsResult.LastName) {
-        return true;
-    }
-    return false;
-}
-
-export function isValidSEASResult(seasResult: any) {
-    if (seasResult && seasResult.CompanyName) //TODO: Add more mandatory fields in condition
-    {
-        return true;
-    }
-    return false;
-}
-
-export function getAPIUrl(context: any, actionName: string) {
-    return context.page.getClientUrl() + "/api/data/v9.1/"+ actionName;
 }
