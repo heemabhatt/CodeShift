@@ -29,45 +29,49 @@ export class CeoAuthenticationLogSearch implements ComponentFramework.StandardCo
 		this._container = container;
 		this._notifyOutputChanged = notifyOutputChanged;
 
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoCompanyId) 
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoCompanyId)
 			&& !Helper.isEmptyString(context.parameters.ceoCompanyId.raw)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
 			this.searchProps.companyId = this._inputCeoCompanyId;
 		}
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoUserId) 
-		&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoUserId)
+			&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
 			this._inputCeoUserId = context.parameters.ceoUserId.raw || "";
 			this.searchProps.userId = this._inputCeoUserId;
 		}
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoSearch) 
-		&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
-			this._outputCeoSearch = context.parameters.ceoSearch.raw || "" ;
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoSearch)
+			&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
+			this._outputCeoSearch = context.parameters.ceoSearch.raw || "";
 			this.searchProps.ceoSearch = this._outputCeoSearch;
 		}
-		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
+
+		this.searchProps.disabled = Helper.isEmptyStringProperty(context.parameters.ceoUserId)
+			|| Helper.isEmptyString(context.parameters.ceoUserId.raw) || Helper.isEmptyStringProperty(context.parameters.ceoSearch) || Helper.isEmptyString(context.parameters.ceoSearch.raw);
 	}
 
 	public updateView(context: ComponentFramework.Context<IInputs>): void {
 
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoCompanyId) 
-		&& !Helper.isEmptyString(context.parameters.ceoCompanyId.raw)) {
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoCompanyId)
+			&& !Helper.isEmptyString(context.parameters.ceoCompanyId.raw)) {
 			this._inputCeoCompanyId = context.parameters.ceoCompanyId.raw || "";
 			this.searchProps.companyId = this._inputCeoCompanyId;
 		}
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoUserId) 
-		&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
+		
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoUserId)
+			&& !Helper.isEmptyString(context.parameters.ceoUserId.raw)) {
 			this._inputCeoUserId = context.parameters.ceoUserId.raw || "";
 			this.searchProps.userId = this._inputCeoUserId;
 		}
-
-		if ( !Helper.isEmptyStringProperty(context.parameters.ceoSearch) 
-		&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
+		
+		if (!Helper.isEmptyStringProperty(context.parameters.ceoSearch)
+			&& !Helper.isEmptyString(context.parameters.ceoSearch.raw)) {
 			this._outputCeoSearch = context.parameters.ceoSearch.raw || "";
 		}
-		 
-		this.searchProps.disabled = (this._inputCeoUserId.length === 0) || (this._inputCeoCompanyId.length === 0);
+
 		this.searchProps.context = context;
 
+		this.searchProps.disabled = Helper.isEmptyStringProperty(context.parameters.ceoUserId)
+			|| Helper.isEmptyString(context.parameters.ceoUserId.raw) || Helper.isEmptyStringProperty(context.parameters.ceoCompanyId) || Helper.isEmptyString(context.parameters.ceoCompanyId.raw);
 		this.renderControl(context);
 	}
 
